@@ -1,6 +1,7 @@
 import argparse
 import random
 import numpy as np
+import random
 from lf_evaluator import *
 from models import *
 from data import *
@@ -37,6 +38,9 @@ def _parse_args():
     parser.add_argument('--dropout', type=float, default=0.2, help='dropout rate')
     parser.add_argument('--decoder_len_limit', type=int, default=65, help='output length limit of the decoder')
     parser.add_argument('--num_filters', type=int, default=2, help='number of decoders in the network')
+    parser.add_argument('--experiment', type=str, default='translate', help='machine translation or semantic parsing')
+    parser.add_argument('--train_size', type=int, default=10000, help='size of training data')
+    parser.add_argument('--test_size', type=int, default=100, help='size of testing data')
     args = parser.parse_args()
     return args
 
@@ -46,9 +50,15 @@ if __name__ == '__main__':
     random.seed(args.seed)
     np.random.seed(args.seed)
     # Load the training and test data
-    train, dev, test = load_datasets(args.train_path, args.dev_path, args.test_path, domain=args.domain)
-    train_data_indexed, dev_data_indexed, test_data_indexed, input_indexer, output_indexer = index_datasets(train, dev, test, args.decoder_len_limit)
-    print("%i train exs, %i dev exs, %i input types, %i output types" % (len(train_data_indexed), len(dev_data_indexed), len(input_indexer), len(output_indexer)))
+    if args.experiment == 'translate':
+        dataset = load_dataset('data/eng-fra.txt', 'trans')
+        train, dev = random.sample(dataset, args.train_size), random.sample(dataset, args.test_size)
+        train_data_indexed, dev_data_indexed, input_indexer, output_indexer = index_datasets(train, dev, args.decoder_len_limit)
+        print("%i train exs, %i dev exs, %i input types, %i output types" % (len(train_data_indexed), len(dev_data_indexed), len(input_indexer), len(output_indexer)))
+    else:
+        train, dev, test = load_datasets(args.train_path, args.dev_path, args.test_path, domain=args.domain)
+        train_data_indexed, dev_data_indexed, input_indexer, output_indexer = index_datasets(train, dev, args.decoder_len_limit)
+        print("%i train exs, %i dev exs, %i input types, %i output types" % (len(train_data_indexed), len(dev_data_indexed), len(input_indexer), len(output_indexer)))
 
     t = time.time()
     autoencoder = train_encoder(train_data_indexed, input_indexer, args)
@@ -60,5 +70,6 @@ if __name__ == '__main__':
     mgmae = train_decoders(train_data_indexed, input_indexer, output_indexer, autoencoder, gm, args.num_filters, args)
     print('Training Time: ', time.time() - t1)
     print("=======DEV SET=======")
-    evaluate(dev_data_indexed, mgmae, use_java=args.perform_java_eval)
+    translation = args.experiment == 'translate'
+    evaluate(dev_data_indexed, mgmae, translation, use_java=args.perform_java_eval)
 

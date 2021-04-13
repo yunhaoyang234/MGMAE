@@ -1,6 +1,7 @@
 from utils import *
 from typing import List, Tuple
 import random
+import string
 from collections import Counter
 
 def load_datasets(train_path: str, dev_path: str, test_path: str, domain=None) -> (List[Tuple[str,str]], List[Tuple[str,str]], List[Tuple[str,str]]):
@@ -18,21 +19,33 @@ def load_datasets(train_path: str, dev_path: str, test_path: str, domain=None) -
     return train_raw, dev_raw, test_raw
 
 
+def translation_preprocess(dataset, x_set, x, y):
+    if not (x in x_set):
+        y = y.replace('\u202f', ' ')
+        x_set.add(x)
+        mydict = {}
+        for i in string.punctuation:
+            mydict[ord(i)] = None
+        x = x.translate(mydict)
+        y = y.translate(mydict) + ' <EOS>'
+        dataset.append((x, y))
+
 def load_dataset(filename: str, domain="geo") -> List[Tuple[str,str]]:
     """
     Reads a dataset in from the given file.
-    :param filename:
-    :param domain: Ignore this parameter
-    :return: a list of untokenized, unindexed (natural language, logical form) pairs
+    return: a list of untokenized, unindexed (natural language, logical form) pairs
     """
     dataset = []
+    x_set = set()
     with open(filename) as f:
         for line in f:
             x, y = line.rstrip('\n').split('\t')
             # Geoquery features some additional preprocessing of the logical form
             if domain == "geo":
                 y = geoquery_preprocess_lf(y)
-            dataset.append((x, y))
+                dataset.append((x, y))
+            else:
+                translation_preprocess(dataset, x_set, x, y)
     return dataset
 
 
@@ -66,7 +79,7 @@ def index_data(data, input_indexer: Indexer, output_indexer: Indexer, example_le
     return data_indexed
 
 
-def index_datasets(train_data, dev_data, test_data, example_len_limit, unk_threshold=0.0) -> (List[Example], List[Example], List[Example], Indexer, Indexer):
+def index_datasets(train_data, dev_data, example_len_limit, unk_threshold=0.0) -> (List[Example], List[Example], Indexer, Indexer):
     """
     Indexes train and test datasets where all words occurring less than or equal to unk_threshold times are
     replaced by UNK tokens.
@@ -103,13 +116,8 @@ def index_datasets(train_data, dev_data, test_data, example_len_limit, unk_thres
     # Index things
     train_data_indexed = index_data(train_data, input_indexer, output_indexer, example_len_limit)
     dev_data_indexed = index_data(dev_data, input_indexer, output_indexer, example_len_limit)
-    test_data_indexed = index_data(test_data, input_indexer, output_indexer, example_len_limit)
-    return train_data_indexed, dev_data_indexed, test_data_indexed, input_indexer, output_indexer
+    return train_data_indexed, dev_data_indexed, input_indexer, output_indexer
 
-
-##################################################
-# YOU SHOULD NOT NEED TO LOOK AT THESE FUNCTIONS #
-##################################################
 def print_evaluation_results(test_data, selected_derivs, denotation_correct, example_freq=50, print_output=True):
     """
     Prints output and accuracy. YOU SHOULD NOT NEED TO CALL THIS DIRECTLY -- instead call evaluate in main.py, which

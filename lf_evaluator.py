@@ -3,20 +3,34 @@ import subprocess
 import os
 import re
 from data import *
+import nltk
+from nltk.translate.bleu_score import sentence_bleu
+from nltk.translate.bleu_score import SmoothingFunction
 
-def evaluate(test_data: List[Example], decoder, example_freq=50, print_output=True, outfile=None, use_java=True):
-    """
-    Evaluates decoder against the data in test_data (could be dev data or test data). Prints some output
-    every example_freq examples. Writes predictions to outfile if defined. Evaluation requires
-    executing the model's predictions against the knowledge base. We pick the highest-scoring derivation for each
-    example with a valid denotation (if you've provided more than one).
-    :param test_data:
-    :param decoder:
-    :param example_freq: How often to print output
-    :param print_output:
-    :param outfile:
-    :return:
-    """
+def bleu_score(pred, label):
+    '''
+    pred, label: list of strings (tokens)
+    '''
+    reference = [pred]
+    candidate = label[:-1]
+    smoothie = SmoothingFunction().method3
+    score = sentence_bleu(reference, candidate, weights=(1, 0, 0, 0), smoothing_function=smoothie)
+    return score
+
+def evaluate_ml(test_data: List[Example], decoder):
+    avg_bleu = 0
+    pred_derivations = decoder.decode(test_data)
+    selected_derivs = [derivs[0] for derivs in pred_derivations]
+    for derivs in selected_derivs:
+        label = derivs.example.y_tok
+        pred = derivs.y_toks
+        avg_bleu += bleu_score(pred, label)
+    print('BLEU Score: ', avg_bleu/len(test_data))
+    return avg_bleu/len(test_data)
+
+def evaluate(test_data: List[Example], decoder, translation, use_java=True):
+    if translation:
+        return evaluate_ml(test_data, decoder)
     e = GeoqueryDomain()
     pred_derivations = decoder.decode(test_data)
     if use_java:
@@ -24,13 +38,7 @@ def evaluate(test_data: List[Example], decoder, example_freq=50, print_output=Tr
     else:
         selected_derivs = [derivs[0] for derivs in pred_derivations]
         denotation_correct = [False for derivs in pred_derivations]
-    res = print_evaluation_results(test_data, selected_derivs, denotation_correct, example_freq, print_output)
-    # Writes to the output file if needed
-    if outfile is not None:
-        with open(outfile, "w") as out:
-            for i, ex in enumerate(test_data):
-                out.write(ex.x + "\t" + " ".join(selected_derivs[i].y_toks) + "\n")
-        out.close()
+    res = print_evaluation_results(test_data, selected_derivs, denotation_correct, 50, True)
     return res
 
 # Find the top-scoring derivation that executed without error
