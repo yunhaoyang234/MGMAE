@@ -155,7 +155,7 @@ def make_padded_output_tensor(exs, output_indexer, max_len):
     """
     return np.array([[ex.y_indexed[i] if i < len(ex.y_indexed) else output_indexer.index_of(PAD_SYMBOL) for i in range(0, max_len)] for ex in exs])
 
-def plot_latent(data, autoencoder, gm):
+def plot_latent(data, autoencoder, gm, num_filters):
     input_lens = torch.tensor([len(ex.x_indexed) for ex in data])
     input_max_len = torch.max(input_lens).item()
     x_tensor = make_padded_input_tensor(data, autoencoder.input_indexer, input_max_len, reverse_input=False)
@@ -164,8 +164,8 @@ def plot_latent(data, autoencoder, gm):
     labels = gm.predict(X)
     pca =  decomposition.PCA(n_components=2)
     X = pca.fit_transform(X)
-    colors=['red', 'blue', 'green']
-    for i in range(2):
+    colors=['red', 'blue', 'green', 'purple']
+    for i in range(num_filters):
         plt.scatter(X[labels==i, 0], X[labels==i, 1], s=5, c=colors[i])
     plt.show()
 
