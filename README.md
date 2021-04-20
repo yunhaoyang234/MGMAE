@@ -20,7 +20,7 @@ These datasets can also be found in `/data` folder.
 #### Geo-query Question-Answering Experiment
 ```bash
 $ python main.py \
-		 --experiment 'geo'\
+	 --experiment 'geo'\
          --train_path 'data/geo_train.tsv'\
          --dev_path 'data/geo_dev.tsv'\
          --epochs 10\
@@ -35,7 +35,7 @@ The token-level accuracy and denotation accuracy for the development set will be
 #### SIDD Denoising Experiment
 ```bash
 $ python main.py \
-		 --experiment 'translate'\
+	 --experiment 'translate'\
          --epochs 10\
          --lr 0.001\
          --hidden_size 250\
