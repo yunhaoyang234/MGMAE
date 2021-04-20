@@ -164,6 +164,7 @@ def plot_latent(data, autoencoder, gm, num_filters):
     labels = gm.predict(X)
     pca =  decomposition.PCA(n_components=2)
     X = pca.fit_transform(X)
+    print(labels)
     colors=['red', 'blue', 'green', 'purple']
     for i in range(num_filters):
         plt.scatter(X[labels==i, 0], X[labels==i, 1], s=5, c=colors[i])

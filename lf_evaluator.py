@@ -14,7 +14,7 @@ def bleu_score(pred, label):
     reference = [pred]
     candidate = label[:-1]
     smoothie = SmoothingFunction().method3
-    score = sentence_bleu(reference, candidate, weights=(1, 0, 0, 0), smoothing_function=smoothie)
+    score = sentence_bleu(reference, candidate, weights=(0.25, 0.25, 0.25, 0.25), smoothing_function=smoothie)
     return score
 
 def evaluate_ml(test_data: List[Example], decoder):

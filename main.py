@@ -12,16 +12,8 @@ import time
 import matplotlib.pyplot as plt
 
 def _parse_args():
-    """
-    Command-line arguments to the system. --model switches between the main modes you'll need to use. The other arguments
-    are provided for convenience.
-    :return: the parsed args bundle
-    """
     parser = argparse.ArgumentParser(description='main.py')
     
-    # General system running and configuration options
-    parser.add_argument('--do_nearest_neighbor', dest='do_nearest_neighbor', default=False, action='store_true', help='run the nearest neighbor model')
-
     parser.add_argument('--train_path', type=str, default='data/geo_train.tsv', help='path to train data')
     parser.add_argument('--dev_path', type=str, default='data/geo_dev.tsv', help='path to dev data')
     parser.add_argument('--test_path', type=str, default='data/geo_test.tsv', help='path to blind test data')
@@ -39,8 +31,8 @@ def _parse_args():
     parser.add_argument('--decoder_len_limit', type=int, default=65, help='output length limit of the decoder')
     parser.add_argument('--num_filters', type=int, default=2, help='number of decoders in the network')
     parser.add_argument('--experiment', type=str, default='translate', help='machine translation or semantic parsing')
-    parser.add_argument('--train_size', type=int, default=1000, help='size of training data')
-    parser.add_argument('--test_size', type=int, default=100, help='size of testing data')
+    parser.add_argument('--train_size', type=int, default=10000, help='size of training data')
+    parser.add_argument('--test_size', type=int, default=2000, help='size of testing data')
     args = parser.parse_args()
     return args
 
@@ -51,7 +43,7 @@ if __name__ == '__main__':
     np.random.seed(args.seed)
     # Load the training and test data
     if args.experiment == 'translate':
-        dataset = load_dataset('data/eng-fra.txt', 'trans')[:3000]
+        dataset = load_dataset('data/eng-fra.txt', 'trans')
         train, dev = random.sample(dataset, args.train_size), random.sample(dataset, args.test_size)
         train_data_indexed, dev_data_indexed, input_indexer, output_indexer = index_datasets(train, dev, args.decoder_len_limit)
         print("%i train exs, %i dev exs, %i input types, %i output types" % (len(train_data_indexed), len(dev_data_indexed), len(input_indexer), len(output_indexer)))
@@ -64,8 +56,8 @@ if __name__ == '__main__':
     autoencoder = train_encoder(train_data_indexed, input_indexer, args)
     print('Training Time: ', time.time() - t)
     gm = train_gaussian_mixture(train_data_indexed, autoencoder, args.num_filters)
-    plot_latent(train_data_indexed, autoencoder, gm, args.num_filters)
-    exit()
+    # plot_latent(train_data_indexed, autoencoder, gm, args.num_filters)
+    # exit()
     t1 = time.time()
     mgmae = train_decoders(train_data_indexed, input_indexer, output_indexer, autoencoder, gm, args.num_filters, args)
     print('Training Time: ', time.time() - t1)
