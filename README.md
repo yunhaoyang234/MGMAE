@@ -32,7 +32,7 @@ $ python main.py \
 ```
 The token-level accuracy and denotation accuracy for the development set will be printed out.
 
-#### SIDD Denoising Experiment
+#### Bilingual Sentence Pairs Translation Experiment
 ```bash
 $ python main.py \
 	 --experiment 'translate'\
