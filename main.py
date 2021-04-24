@@ -32,8 +32,8 @@ def _parse_args():
     parser.add_argument('--decoder_len_limit', type=int, default=65, help='output length limit of the decoder')
     parser.add_argument('--num_filters', type=int, default=2, help='number of decoders in the network')
     parser.add_argument('--experiment', type=str, default='translate', help='machine translation or semantic parsing')
-    parser.add_argument('--train_size', type=int, default=1000, help='size of training data')
-    parser.add_argument('--test_size', type=int, default=200, help='size of testing data')
+    parser.add_argument('--train_size', type=int, default=10000, help='size of training data')
+    parser.add_argument('--test_size', type=int, default=2000, help='size of testing data')
     args = parser.parse_args()
     return args
 
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     np.random.seed(args.seed)
     # Load the training and test data
     if args.experiment == 'translate':
-        dataset = load_dataset('data/eng-fra.txt', 'trans')[:2000]
+        dataset = load_dataset('data/eng-fra.txt', 'trans')
         train, dev = random.sample(dataset, args.train_size), random.sample(dataset, args.test_size)
         train_data_indexed, dev_data_indexed, input_indexer, output_indexer = index_datasets(train, dev, args.decoder_len_limit)
         print("%i train exs, %i dev exs, %i input types, %i output types" % (len(train_data_indexed), len(dev_data_indexed), len(input_indexer), len(output_indexer)))
