@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import sklearn
 import pickle
 from sklearn import decomposition
+from sklearn import metrics
 
 class Example(object):
     """
@@ -162,9 +163,10 @@ def plot_latent(data, autoencoder, gm, num_filters):
     (o, c, hn) = autoencoder.encoder(torch.tensor(x_tensor), input_lens)
     X = hn[0].detach().numpy()
     labels = gm.predict(X)
+    sil_score = metrics.silhouette_score(X, labels)
+    print('Silhouette Score: ', sil_score)
     pca =  decomposition.PCA(n_components=2)
     X = pca.fit_transform(X)
-    print(labels)
     colors=['red', 'blue', 'green', 'purple']
     for i in range(num_filters):
         plt.scatter(X[labels==i, 0], X[labels==i, 1], s=5, c=colors[i])
