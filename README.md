@@ -43,6 +43,6 @@ $ python main.py \
     	 --dropout 0.1\
     	 --embedding_dim 200\
     	 --train_size 5000\
-    	 --test_size 1000\
+    	 --test_size 1000
 ```
 The BLEU score for the test set will be printed out.
