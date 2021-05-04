@@ -8,7 +8,7 @@ The Multi-filter Gaussian Mixture Autoencoder (abbreviation: MGMAE) utilizes an 
 ## Requirements:
 See requirement.txt\
 Run
-`pip install -r requirement.txt` \
+`pip install -r requirement.txt`
 
 ## Datasets:
 - `Geo-query` - geographical questions and answers.
