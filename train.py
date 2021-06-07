@@ -1,10 +1,11 @@
 # train.py
 from utils import *
 from models import *
+import copy
 import sklearn
 from sklearn.mixture import GaussianMixture
 
-def train_encoder(train_data: List[Example], input_indexer, args):
+def train_encoder(train_data: List[Example], input_indexer, output_indexer, args):
     HIDDEN_SIZE = args.hidden_size
     EMBEDDING_DIM = args.embedding_dim
     LR = args.lr
@@ -13,7 +14,7 @@ def train_encoder(train_data: List[Example], input_indexer, args):
     DROPOUT = args.dropout
     MAX_LEN = args.decoder_len_limit
 
-    autoencoder = Autoencoder(input_indexer, input_indexer, EMBEDDING_DIM, HIDDEN_SIZE, 
+    autoencoder = Autoencoder(input_indexer, output_indexer, EMBEDDING_DIM, HIDDEN_SIZE, 
                               attention=True, embedding_dropout=DROPOUT)
     optimizer = optim.Adam(autoencoder.parameters(), lr=LR)
     for i in range(EPOCH):
@@ -22,12 +23,16 @@ def train_encoder(train_data: List[Example], input_indexer, args):
         for j in range(0, len(train_data), BATCH_SIZE):
             autoencoder.zero_grad()
             batch_exs = train_data[j: j+BATCH_SIZE]
-            x_inp_len = []
+
+            x_inp_len, y_inp_len = [],[]
             for ex in batch_exs:
                 x_inp_len.append(len(ex.x_tok))
+                y_inp_len.append(len(ex.y_tok)+1) # include EOS
             x_tensor = make_padded_input_tensor(batch_exs, input_indexer, max(x_inp_len), reverse_input=False)
-            x_inp_len = torch.tensor(x_inp_len)
-            loss = autoencoder.forward(torch.tensor(x_tensor), x_inp_len, torch.tensor(x_tensor), x_inp_len)
+            y_tensor = make_padded_output_tensor(batch_exs, output_indexer, max(y_inp_len))
+            x_inp_len, y_inp_len = torch.tensor(x_inp_len), torch.tensor(y_inp_len)
+
+            loss = autoencoder.forward(torch.tensor(x_tensor), x_inp_len, torch.tensor(y_tensor), y_inp_len)
             total_loss += loss
             loss.backward()
             optimizer.step()
@@ -35,13 +40,12 @@ def train_encoder(train_data: List[Example], input_indexer, args):
     return autoencoder
 
 def train_gaussian_mixture(train_data, autoencoder, n_components=2):
-    encoder = autoencoder.encoder
     input_lens = torch.tensor([len(ex.x_indexed) for ex in train_data])
     input_max_len = torch.max(input_lens).item()
     x_tensor = make_padded_input_tensor(train_data, autoencoder.input_indexer, 
                                         input_max_len, reverse_input=False)
-    (o, c, hn) = encoder(torch.tensor(x_tensor), input_lens)
-    X = hn[0].detach().numpy()
+    (o, c, hn) = autoencoder.encode_input(torch.tensor(x_tensor), input_lens)
+    X = hn[0].squeeze(0).detach().numpy()
     gm = GaussianMixture(n_components=n_components, random_state=0).fit(X)
     return gm
 
@@ -63,14 +67,14 @@ def train_decoders(train_data: List[Example], input_indexer, output_indexer, aut
     EMBEDDING_DIM = args.embedding_dim
     LR = args.lr
     BATCH_SIZE = args.batch_size
-    EPOCH = args.epochs * num_filters
+    EPOCH = args.epochs
     DROPOUT = args.dropout
     MAX_LEN = args.decoder_len_limit
 
     filters = []
     optimizers = []
     for i in range(num_filters):
-        filters.append(Decoder(output_indexer, EMBEDDING_DIM, DROPOUT, HIDDEN_SIZE, autoencoder.bidirect, True))
+        filters.append(copy.deepcopy(autoencoder.decoder))
         optimizers.append(optim.Adam(filters[i].parameters(), lr=LR))
 
     for i in range(EPOCH):
@@ -98,8 +102,7 @@ def train_decoders(train_data: List[Example], input_indexer, output_indexer, aut
                 loss.backward()
                 optimizers[k].step()
                 total_loss += loss * len(y_list[k]) / BATCH_SIZE
-        if i%2 == 0:
-            print('Epoch ', i//num_filters+1, total_loss)
+        print('Epoch ', i+1, total_loss)
     return MGMAE(autoencoder, filters, gm, out_max_length=MAX_LEN)
 
 

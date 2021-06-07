@@ -83,14 +83,29 @@ class EmbeddingLayer(nn.Module):
         final_embeddings = self.dropout(embedded_words)
         return final_embeddings
 
+class Transformer(nn.Module):
+    def __init__(self, input_size, output_size, hidden_size, num_layers=2):
+        super(Transformer, self).__init__()
+        self.inp2hid = nn.Linear(input_size, hidden_size, bias=True)
+        self.hid_layers = []
+        for i in range(num_layers):
+            self.hid_layers.append(nn.Linear(hidden_size, hidden_size, bias=True))
+        self.hid2out = nn.Linear(hidden_size, output_size, bias=True)
+
+    def forward(self, x_hidden):
+        hid = self.inp2hid(x_hidden)
+        for hid_layer in self.hid_layers:
+            hid = hid_layer(hid)
+        return self.hid2out(hid)
 
 class Autoencoder(nn.Module):
     def __init__(self, input_indexer, output_indexer, emb_dim, hidden_size, attention, embedding_dropout=0.2, bidirect=True):
         super(Autoencoder, self).__init__()
-        self.input_indexer = input_indexer
         self.bidirect = bidirect
+        self.input_indexer = input_indexer
 
         self.encoder = Encoder(len(input_indexer), emb_dim, embedding_dropout, hidden_size, bidirect)
+        self.transform = Transformer(hidden_size, hidden_size,hidden_size*2, 2)
         self.decoder = Decoder(output_indexer, emb_dim, embedding_dropout, hidden_size, bidirect, attention)
         self.loss = nn.NLLLoss()
 
@@ -104,7 +119,9 @@ class Autoencoder(nn.Module):
 
     def encode_input(self, x_tensor, inp_lens_tensor):
         (enc_output_each_word, enc_context_mask, enc_final_states) = self.encoder.forward(x_tensor, inp_lens_tensor)
-        enc_final_states_reshaped = (enc_final_states[0].unsqueeze(0), enc_final_states[1].unsqueeze(0))
+        new_hid = self.transform(enc_final_states[0])
+        enc_final_states_reshaped = (new_hid.unsqueeze(0), enc_final_states[1].unsqueeze(0))
+        # enc_final_states_reshaped = (enc_final_states[0].unsqueeze(0), enc_final_states[1].unsqueeze(0))
         return (enc_output_each_word, enc_context_mask, enc_final_states_reshaped)
 
     def forward(self, x_tensor, inp_lens_tensor, y_tensor, out_lens_tensor):

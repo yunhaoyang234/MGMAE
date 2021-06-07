@@ -1,7 +1,7 @@
-# MGMAE
-Code for reproducing results in **Representation Learning in Sequence to Sequence Tasks: Multi-filter Gaussian Mixture Autoencoder**.
+# LEMS
+Code for reproducing results in **Training Heterogeneous Features in Sequence to Sequence Tasks: Latent Enhanced Multi-filter Seq2Seq Model**.
 
-The Multi-filter Gaussian Mixture Autoencoder (abbreviation: MGMAE) utilizes an autoencoder to learn the representations of the inputs. The representations are the outputs from the encoder, lying in the latent space whose dimension is the hidden dimension of the encoder. The representations of training data in the latent space are used to train Gaussian mixtures. The latent space representations are divided into several mixtures of Gaussian distributions. A filter (decoder) is tuned to fit the data in one of the Gaussian distributions specifically. Each Gaussian is corresponding to one filter so that the filter only concentrates on the homogeneous features in this Gaussian. Thus the heterogeneity of the training data can be resolved.
+Build upon the encoder-decoder architecture, we design a latent-enhanced multi-filter seq2seq model (LEMS) that analyzes the input-output mapping representations by introducing a latent space transformation and clustering. The representations are extracted from the final hidden state of the encoder and lied on the latent space. A latent space transformation is applied to the representations. It transforms the representations to another space that better represents the input-output mappings. Thus the clustering algorithm can easily separate samples based on their features. Then, multiple filters can be trained by the features from their corresponding clusters, the heterogeneity of the training data can be resolved accordingly.
 
 ![architecture](https://github.com/yunhaoyang234/MGMAE/blob/main/figures/architecture.png)
 
