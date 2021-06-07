@@ -17,7 +17,6 @@ def _parse_args():
     
     parser.add_argument('--train_path', type=str, default='data/geo_train.tsv', help='path to train data')
     parser.add_argument('--dev_path', type=str, default='data/geo_dev.tsv', help='path to dev data')
-    parser.add_argument('--test_path', type=str, default='data/geo_test.tsv', help='path to blind test data')
     parser.add_argument('--test_output_path', type=str, default='geo_test_output.tsv', help='path to write blind test results')
     parser.add_argument('--domain', type=str, default='geo', help='domain (geo for geoquery)')
     parser.add_argument('--no_java_eval', dest='perform_java_eval', default=True, action='store_false', help='run evaluation of constructed query against java backend')
@@ -31,25 +30,21 @@ def _parse_args():
     parser.add_argument('--dropout', type=float, default=0.2, help='dropout rate')
     parser.add_argument('--decoder_len_limit', type=int, default=65, help='output length limit of the decoder')
     parser.add_argument('--num_filters', type=int, default=2, help='number of decoders in the network')
-    parser.add_argument('--experiment', type=str, default='translate', help='machine translation or semantic parsing')
-    parser.add_argument('--train_size', type=int, default=1000, help='size of training data')
-    parser.add_argument('--test_size', type=int, default=200, help='size of testing data')
     args = parser.parse_args()
     return args
 
 if __name__ == '__main__':
     args = _parse_args()
-    print("%i epochs, %i batch size, %i hidden dim, %i filters" %(args.epochs, args.batch_size, args.hidden_size, args.num_filters))
+    print("domain %s, %i epochs, %i batch size, %i hidden dim, %i filters" %(args.domain, args.epochs, args.batch_size, args.hidden_size, args.num_filters))
     random.seed(args.seed)
     np.random.seed(args.seed)
     # Load the training and test data
-    if args.experiment == 'translate':
-        dataset = load_dataset('data/eng-fra.txt', 'trans')[:2000]
-        train, dev = random.sample(dataset, args.train_size), random.sample(dataset, args.test_size)
+    if args.domain == 'translate':
+        train, dev = load_datasets1(('data/trans_test.en', 'data/trans_test.fr'), ('data/trans_test.en', 'data/trans_test.fr'))
         train_data_indexed, dev_data_indexed, input_indexer, output_indexer = index_datasets(train, dev, args.decoder_len_limit)
         print("%i train exs, %i dev exs, %i input types, %i output types" % (len(train_data_indexed), len(dev_data_indexed), len(input_indexer), len(output_indexer)))
     else:
-        train, dev, test = load_datasets(args.train_path, args.dev_path, args.test_path, domain=args.domain)
+        train, dev = load_datasets(args.train_path, args.dev_path, domain=args.domain)
         train_data_indexed, dev_data_indexed, input_indexer, output_indexer = index_datasets(train, dev, args.decoder_len_limit)
         print("%i train exs, %i dev exs, %i input types, %i output types" % (len(train_data_indexed), len(dev_data_indexed), len(input_indexer), len(output_indexer)))
 
@@ -63,6 +58,6 @@ if __name__ == '__main__':
     mgmae = train_decoders(train_data_indexed, input_indexer, output_indexer, autoencoder, gm, args.num_filters, args)
     print('Training Time: ', time.time() - t1)
     print("=======DEV SET=======")
-    translation = args.experiment == 'translate'
+    translation = args.domain == 'translate'
     evaluate(dev_data_indexed, mgmae, translation, use_java=args.perform_java_eval)
 

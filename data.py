@@ -4,7 +4,7 @@ import random
 import string
 from collections import Counter
 
-def load_datasets(train_path: str, dev_path: str, test_path: str, domain=None) -> (List[Tuple[str,str]], List[Tuple[str,str]], List[Tuple[str,str]]):
+def load_datasets(train_path: str, dev_path: str, domain=None) -> (List[Tuple[str,str]], List[Tuple[str,str]]):
     """
     Reads the training, dev, and test data from the corresponding files.
     :param train_path:
@@ -15,20 +15,36 @@ def load_datasets(train_path: str, dev_path: str, test_path: str, domain=None) -
     """
     train_raw = load_dataset(train_path, domain=domain)
     dev_raw = load_dataset(dev_path, domain=domain)
-    test_raw = load_dataset(test_path, domain=domain)
-    return train_raw, dev_raw, test_raw
+    return train_raw, dev_raw
 
+def load_datasets1(train_paths:Tuple[str,str], dev_paths:Tuple[str,str]) -> (List[Tuple[str,str]], List[Tuple[str,str]]):
+    """
+    Reads the training, dev, and test data from the corresponding files.
+    :param train_path:
+    :param dev_path:
+    :param test_path:
+    :param domain: Ignore this parameter
+    :return:
+    """
+    train_raw = load_dataset1(train_paths[0], train_paths[1])
+    dev_raw = load_dataset1(dev_paths[0], dev_paths[1])
+    return train_raw, dev_raw
 
-def translation_preprocess(dataset, x_set, x, y):
-    if not (x in x_set):
-        y = y.replace('\u202f', ' ')
-        x_set.add(x)
-        mydict = {}
-        for i in string.punctuation:
-            mydict[ord(i)] = None
-        x = x.translate(mydict)
-        y = y.translate(mydict) + ' <EOS>'
-        dataset.append((x, y))
+def load_dataset1(x_filename:str, y_filename:str):
+    x_dataset = []
+    y_dataset = []
+    with open(x_filename) as f:
+        for line in f:
+            x_dataset.append(line.rstrip('\n'))
+    with open(y_filename) as f:
+        for line in f:
+            y_dataset.append(line.rstrip('\n') + ' <EOS>')
+
+    dataset = []
+    for i in range(len(x_dataset)):
+        dataset.append((x_dataset[i], y_dataset[i]))
+    return dataset
+
 
 def load_dataset(filename: str, domain="geo") -> List[Tuple[str,str]]:
     """
@@ -44,8 +60,6 @@ def load_dataset(filename: str, domain="geo") -> List[Tuple[str,str]]:
             if domain == "geo":
                 y = geoquery_preprocess_lf(y)
                 dataset.append((x, y))
-            else:
-                translation_preprocess(dataset, x_set, x, y)
     return dataset
 
 
