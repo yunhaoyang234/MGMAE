@@ -4,6 +4,8 @@ from models import *
 import copy
 import sklearn
 from sklearn.mixture import GaussianMixture
+from sklearn.pipeline import Pipeline
+from sklearn import decomposition
 
 def train_encoder(train_data: List[Example], input_indexer, output_indexer, args):
     HIDDEN_SIZE = args.hidden_size

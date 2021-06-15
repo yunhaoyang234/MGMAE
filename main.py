@@ -52,7 +52,7 @@ if __name__ == '__main__':
     autoencoder = train_encoder(train_data_indexed, input_indexer, output_indexer, args)
     print('Training Time: ', time.time() - t)
     gm = train_gaussian_mixture(train_data_indexed, autoencoder, args.num_filters)
-    #plot_latent(train_data_indexed, autoencoder, gm, args.num_filters)
+    # plot_latent(train_data_indexed, autoencoder, gm, args.num_filters)
     
     t1 = time.time()
     mgmae = train_decoders(train_data_indexed, input_indexer, output_indexer, autoencoder, gm, args.num_filters, args)

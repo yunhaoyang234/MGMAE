@@ -6,8 +6,8 @@ import glob
 import matplotlib.pyplot as plt
 import sklearn
 import pickle
-from sklearn import decomposition
 from sklearn import metrics
+from sklearn import decomposition
 
 class Example(object):
     """
@@ -156,17 +156,19 @@ def make_padded_output_tensor(exs, output_indexer, max_len):
     """
     return np.array([[ex.y_indexed[i] if i < len(ex.y_indexed) else output_indexer.index_of(PAD_SYMBOL) for i in range(0, max_len)] for ex in exs])
 
-def plot_latent(data, autoencoder, gm, num_filters):
+def plot_latent(data, autoencoder, gm, num_filters, disp_sil_score=False):
     input_lens = torch.tensor([len(ex.x_indexed) for ex in data])
     input_max_len = torch.max(input_lens).item()
     x_tensor = make_padded_input_tensor(data, autoencoder.input_indexer, input_max_len, reverse_input=False)
     (o, c, hn) = autoencoder.encoder(torch.tensor(x_tensor), input_lens)
     X = hn[0].detach().numpy()
-    labels = gm.predict(X)
-    sil_score = metrics.silhouette_score(X, labels)
-    print('Silhouette Score: ', sil_score)
+    
     pca =  decomposition.PCA(n_components=2)
     X = pca.fit_transform(X)
+    labels = gm.predict(X)
+    if disp_sil_score:
+        sil_score = metrics.silhouette_score(X, labels)
+        print('Silhouette Score: ', sil_score)
     colors=['red', 'blue', 'green', 'purple']
     for i in range(num_filters):
         plt.scatter(X[labels==i, 0], X[labels==i, 1], s=5, c=colors[i])
