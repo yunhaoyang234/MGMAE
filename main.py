@@ -40,7 +40,7 @@ if __name__ == '__main__':
     np.random.seed(args.seed)
     # Load the training and test data
     if args.domain == 'translate':
-        train, dev = load_datasets1(('data/trans_train.fr', 'data/trans_train.en'), ('data/trans_test.fr', 'data/trans_test.en'))
+        train, dev = load_datasets1(('data/trans_train.en', 'data/trans_train.fr'), ('data/trans_test.en', 'data/trans_test.fr'))
         train_data_indexed, dev_data_indexed, input_indexer, output_indexer = index_datasets(train, dev, args.decoder_len_limit)
         print("%i train exs, %i dev exs, %i input types, %i output types" % (len(train_data_indexed), len(dev_data_indexed), len(input_indexer), len(output_indexer)))
     else:
