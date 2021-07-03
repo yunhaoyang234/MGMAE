@@ -13,9 +13,9 @@ import sklearn
 from sklearn.mixture import GaussianMixture
 from sklearn import decomposition
 
-class MGMAE(nn.Module):
+class LEMS(nn.Module):
     def __init__(self, autoencoder, filters, mixture, out_max_length=99):
-        super(MGMAE, self).__init__()
+        super(LEMS, self).__init__()
         self.autoencoder = autoencoder
         self.gm = mixture
         self.filters = filters
