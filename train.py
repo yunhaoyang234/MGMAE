@@ -105,6 +105,6 @@ def train_decoders(train_data: List[Example], input_indexer, output_indexer, aut
                 optimizers[k].step()
                 total_loss += loss * len(y_list[k]) / BATCH_SIZE
         print('Epoch ', i+1, total_loss)
-    return MGMAE(autoencoder, filters, gm, out_max_length=MAX_LEN)
+    return LEMS(autoencoder, filters, gm, out_max_length=MAX_LEN)
 
 
