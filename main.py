@@ -51,13 +51,11 @@ if __name__ == '__main__':
     t = time.time()
     autoencoder = train_encoder(train_data_indexed, input_indexer, output_indexer, args)
     print('Training Time: ', time.time() - t)
-    gm = train_gaussian_mixture(train_data_indexed, autoencoder, args.num_filters)
-    # plot_latent(train_data_indexed, autoencoder, gm, args.num_filters)
     
     t1 = time.time()
-    mgmae = train_decoders(train_data_indexed, input_indexer, output_indexer, autoencoder, gm, args.num_filters, args)
+    model = train_decoders(train_data_indexed, input_indexer, output_indexer, autoencoder, args.num_filters, args)
     print('Training Time: ', time.time() - t1)
     print("=======DEV SET=======")
     translation = args.domain == 'translate'
-    evaluate(dev_data_indexed, mgmae, translation, use_java=args.perform_java_eval)
+    evaluate(dev_data_indexed, model, translation, use_java=args.perform_java_eval)
 

@@ -14,10 +14,10 @@ from sklearn.mixture import GaussianMixture
 from sklearn import decomposition
 
 class LEMS(nn.Module):
-    def __init__(self, autoencoder, filters, mixture, out_max_length=99):
+    def __init__(self, autoencoder, filters, cluster_classifier, out_max_length=99):
         super(LEMS, self).__init__()
         self.autoencoder = autoencoder
-        self.gm = mixture
+        self.cluster_classifier = cluster_classifier
         self.filters = filters
         self.out_max_length = out_max_length
 
@@ -35,7 +35,7 @@ class LEMS(nn.Module):
             enc_outputs = torch.swapaxes(enc_outputs, 0, 1)
 
             # determine filter
-            filter_idx = self.gm.predict(state[0].squeeze(0).detach().numpy())[0] # int
+            filter_idx = torch.argmax(self.cluster_classifier(state[0].squeeze(0))).item() # int
             decoder = self.filters[filter_idx]
 
             word = torch.ones(len(state[0]), 1, dtype=torch.int) * decoder.indexer.index_of(SOS_SYMBOL)
