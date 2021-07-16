@@ -8,6 +8,61 @@ import sklearn
 import pickle
 from sklearn import metrics
 from sklearn import decomposition
+import gym
+from gym import spaces
+from stable_baselines3 import A2C
+from stable_baselines3 import SAC
+from stable_baselines3.common.vec_env.dummy_vec_env import DummyVecEnv
+
+class Latent_Env(gym.Env):
+    metadata = {'render.modes': ['human']}
+
+    def __init__(self, cluster_classifier, hid_states, target_score, num_filters):
+        super(Latent_Env, self).__init__()
+        self.cluster_classifier = cluster_classifier
+        self.hid_states = hid_states
+        self.target_score = target_score
+        self.current_step = 0
+        self.sil_score = 0
+
+        self.best_score = 0
+        self.best_dict = cluster_classifier.state_dict()
+
+        self.action_space = spaces.Box(low=-0.5, high=0.5, shape=(num_filters,), dtype=np.float32)
+        self.observation_space = spaces.Box(0, self.target_score, shape=(1,),dtype=np.float32)
+
+    def step(self, action):
+        self.current_step += 1
+        state_dict = self.cluster_classifier.state_dict()
+        state_dict['linear.bias'] += action
+        self.cluster_classifier.load_state_dict(state_dict)
+        X = self.hid_states[0].detach().numpy()
+        labels = np.array(torch.argmax(self.cluster_classifier(self.hid_states[0]), dim=1))
+        self.sil_score = 0
+        if not all([labels[0]==i for i in labels]):
+            self.sil_score = metrics.silhouette_score(X, labels)
+            if self.sil_score > self.best_score:
+                self.best_score = self.sil_score
+                self.best_dict = state_dict
+
+        self.cluster_classifier.load_state_dict(self.best_dict)
+
+        obs = np.array([self.sil_score])
+        reward = 100 * self.sil_score + 5
+        done = self.sil_score > self.target_score
+        print('silhouette score', self.best_score, end='\r')
+        return obs, reward, done, {}
+
+    def reset(self):
+        print('reset')
+        self.current_step = 0
+        obs = np.array([0])
+        return obs
+
+    def render(self, mode='human', close=False):
+        print(f'Step: {self.current_step}')
+        print(f'Silhouette Score: {self.sil_score}')
+
 
 class Example(object):
     """

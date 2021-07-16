@@ -41,6 +41,22 @@ def train_encoder(train_data: List[Example], input_indexer, output_indexer, args
         print('Epoch ', i+1, total_loss)
     return autoencoder
 
+def train_cluster_classifier(train_data: List[Example], autoencoder, input_indexer, hidden_size, num_filters):
+    cluster_classifier = nn.Sequential()
+    cluster_classifier.add_module('linear', nn.Linear(hidden_size, num_filters))
+    cluster_classifier.add_module('softmax', nn.LogSoftmax(dim=1))
+
+    input_lens = torch.tensor([len(ex.x_indexed) for ex in train_data])
+    input_max_len = torch.max(input_lens).item()
+    x_tensor = make_padded_input_tensor(train_data, autoencoder.input_indexer, input_max_len, reverse_input=False)
+    (o, c, hn) = autoencoder.encoder(torch.tensor(x_tensor), input_lens)
+
+    env = DummyVecEnv([lambda: Latent_Env(cluster_classifier, hn, 50, num_filters)])
+    rl_model = SAC('MlpPolicy', env, verbose=1, learning_rate=0.001)
+    rl_model.learn(total_timesteps=500)
+
+    return cluster_classifier
+
 def determine_filter(autoencoder, cluster_classifier, num_filter, x_tensor, inp_lens_tensor, y_tensor, out_lens_tensor):
     enc_outputs, enc_cm, state = autoencoder.encode_input(x_tensor, inp_lens_tensor)
     # max_seq_len * batch * hid_size, batch * max_seq_len, 1 * batch * hid_size
@@ -70,10 +86,7 @@ def train_decoders(train_data: List[Example], input_indexer, output_indexer, aut
         filters.append(copy.deepcopy(autoencoder.decoder))
         optimizers.append(optim.Adam(filters[i].parameters(), lr=LR))
 
-    cluster_classifier = nn.Sequential(
-        nn.Linear(HIDDEN_SIZE, num_filters),
-        nn.LogSoftmax(dim=1)
-        )
+    cluster_classifier = train_cluster_classifier(train_data, autoencoder, input_indexer, HIDDEN_SIZE, num_filters)
 
     for i in range(EPOCH):
         random.shuffle(train_data)
@@ -101,7 +114,7 @@ def train_decoders(train_data: List[Example], input_indexer, output_indexer, aut
                 optimizers[k].step()
                 total_loss += loss * len(y_list[k]) / BATCH_SIZE
         print('Epoch ', i+1, total_loss)
-    plot_latent(train_data, autoencoder, cluster_classifier, num_filters, disp_sil_score=False)
+    # plot_latent(train_data, autoencoder, cluster_classifier, num_filters, disp_sil_score=False)
     return LEMS(autoencoder, filters, cluster_classifier, out_max_length=MAX_LEN)
 
 
