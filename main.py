@@ -21,6 +21,7 @@ def _parse_args():
     parser.add_argument('--domain', type=str, default='geo', help='domain (geo for geoquery)')
     parser.add_argument('--no_java_eval', dest='perform_java_eval', default=True, action='store_false', help='run evaluation of constructed query against java backend')
     parser.add_argument('--blind', type=int, default=1)
+    parser.add_argument('--plot', type=int, default=0)
     parser.add_argument('--seed', type=int, default=0, help='RNG seed (default = 0)')
     parser.add_argument('--epochs', type=int, default=10, help='num epochs to train for')
     parser.add_argument('--lr', type=float, default=0.001, help='learning rate')
@@ -58,4 +59,7 @@ if __name__ == '__main__':
     print("=======DEV SET=======")
     translation = args.domain == 'translate'
     evaluate(dev_data_indexed, model, translation, use_java=args.perform_java_eval)
+    if args.plot == 1:
+        plot_latent(train_data_indexed, autoencoder, model.cluster_classifier, args.num_filters, disp_sil_score=False)
+
 

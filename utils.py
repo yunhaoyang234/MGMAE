@@ -17,10 +17,11 @@ from stable_baselines3.common.vec_env.dummy_vec_env import DummyVecEnv
 class Latent_Env(gym.Env):
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, cluster_classifier, hid_states, target_score, num_filters):
+    def __init__(self, cluster_classifier, hid_states, target_score, hid_size, num_filters):
         super(Latent_Env, self).__init__()
         self.cluster_classifier = cluster_classifier
         self.hid_states = hid_states
+        self.hid_size = hid_size
         self.target_score = target_score
         self.current_step = 0
         self.sil_score = 0
@@ -28,13 +29,15 @@ class Latent_Env(gym.Env):
         self.best_score = 0
         self.best_dict = cluster_classifier.state_dict()
 
-        self.action_space = spaces.Box(low=-0.5, high=0.5, shape=(num_filters,), dtype=np.float32)
+        self.action_space = spaces.Box(low=-0.5, high=0.5, shape=(hid_size//2 + num_filters,), dtype=np.float32)
         self.observation_space = spaces.Box(0, self.target_score, shape=(1,),dtype=np.float32)
 
     def step(self, action):
         self.current_step += 1
         state_dict = self.cluster_classifier.state_dict()
-        state_dict['linear.bias'] += action
+        state_dict['linear1.bias'] += action[:self.hid_size//2]
+        state_dict['linear2.bias'] += action[self.hid_size//2:]
+
         self.cluster_classifier.load_state_dict(state_dict)
         X = self.hid_states[0].detach().numpy()
         labels = np.array(torch.argmax(self.cluster_classifier(self.hid_states[0]), dim=1))

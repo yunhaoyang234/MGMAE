@@ -43,7 +43,8 @@ def train_encoder(train_data: List[Example], input_indexer, output_indexer, args
 
 def train_cluster_classifier(train_data: List[Example], autoencoder, input_indexer, hidden_size, num_filters):
     cluster_classifier = nn.Sequential()
-    cluster_classifier.add_module('linear', nn.Linear(hidden_size, num_filters))
+    cluster_classifier.add_module('linear1', nn.Linear(hidden_size, hidden_size//2))
+    cluster_classifier.add_module('linear2', nn.Linear(hidden_size//2, num_filters))
     cluster_classifier.add_module('activate', nn.GELU())
     cluster_classifier.add_module('softmax', nn.LogSoftmax(dim=1))
 
@@ -52,7 +53,7 @@ def train_cluster_classifier(train_data: List[Example], autoencoder, input_index
     x_tensor = make_padded_input_tensor(train_data, autoencoder.input_indexer, input_max_len, reverse_input=False)
     (o, c, hn) = autoencoder.encoder(torch.tensor(x_tensor), input_lens)
 
-    env = DummyVecEnv([lambda: Latent_Env(cluster_classifier, hn, 1, num_filters)])
+    env = DummyVecEnv([lambda: Latent_Env(cluster_classifier, hn, 1, hidden_size, num_filters)])
     rl_model = SAC('MlpPolicy', env, verbose=1, learning_rate=0.001)
     rl_model.learn(total_timesteps=500)
 
@@ -115,7 +116,7 @@ def train_decoders(train_data: List[Example], input_indexer, output_indexer, aut
                 optimizers[k].step()
                 total_loss += loss * len(y_list[k]) / BATCH_SIZE
         print('Epoch ', i+1, total_loss)
-    plot_latent(train_data, autoencoder, cluster_classifier, num_filters, disp_sil_score=False)
+    
     return LEMS(autoencoder, filters, cluster_classifier, out_max_length=MAX_LEN)
 
 

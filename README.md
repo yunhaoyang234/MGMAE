@@ -30,7 +30,7 @@ $ python main.py \
     	 --dropout 0.2\
     	 --embedding_dim 150
 ```
-The token-level accuracy and denotation accuracy for the development set will be printed out.
+The token-level accuracy and denotation accuracy for the development set will be printed out. Set '--plot 1' to display the latent space clustering result. The results may vary each time, you can run multiple times and get an averaged result.
 
 #### Bilingual Sentence Pairs Translation Experiment
 ```bash
@@ -41,8 +41,7 @@ $ python main.py \
          --hidden_size 250\
     	 --num_filters 2\
     	 --dropout 0.1\
-    	 --embedding_dim 200\
-    	 --train_size 5000\
-    	 --test_size 1000
+         --plot 1\
+    	 --embedding_dim 200
 ```
-The BLEU score for the test set will be printed out.
+The BLEU score for the test set will be printed out. Set '--plot 1' to display the latent space clustering result.
