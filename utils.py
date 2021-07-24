@@ -21,22 +21,19 @@ class Latent_Env(gym.Env):
         super(Latent_Env, self).__init__()
         self.cluster_classifier = cluster_classifier
         self.hid_states = hid_states
-        self.hid_size = hid_size
         self.target_score = target_score
         self.current_step = 0
         self.sil_score = 0
 
-        self.best_score = 0
-        self.best_dict = cluster_classifier.state_dict()
+        self.best_dict = self.cluster_classifier.state_dict()
 
-        self.action_space = spaces.Box(low=-0.5, high=0.5, shape=(hid_size//2 + num_filters,), dtype=np.float32)
-        self.observation_space = spaces.Box(0, self.target_score, shape=(1,),dtype=np.float32)
+        self.action_space = spaces.Box(low=-1, high=1, shape=(num_filters,), dtype=np.float32)
+        self.observation_space = spaces.Box(0, self.target_score, shape=(1,),dtype=np.float32)    
 
     def step(self, action):
         self.current_step += 1
         state_dict = self.cluster_classifier.state_dict()
-        state_dict['linear1.bias'] += action[:self.hid_size//2]
-        state_dict['linear2.bias'] += action[self.hid_size//2:]
+        state_dict['linear2.bias'] += action
 
         self.cluster_classifier.load_state_dict(state_dict)
         X = self.hid_states[0].detach().numpy()
@@ -44,16 +41,17 @@ class Latent_Env(gym.Env):
         self.sil_score = 0
         if not all([labels[0]==i for i in labels]):
             self.sil_score = metrics.silhouette_score(X, labels)
-            if self.sil_score > self.best_score:
-                self.best_score = self.sil_score
+            if self.sil_score > self.target_score:
+                self.target_score = self.sil_score
                 self.best_dict = state_dict
 
         self.cluster_classifier.load_state_dict(self.best_dict)
 
         obs = np.array([self.sil_score])
         reward = 100 * self.sil_score + 5
-        done = self.sil_score > self.target_score
-        print('silhouette score', self.best_score, end='\r')
+        done = self.sil_score == 1
+        if self.sil_score > 0:
+            print('best silhouette score', self.target_score, 'silhouette score', self.sil_score, end='\r')
         return obs, reward, done, {}
 
     def reset(self):

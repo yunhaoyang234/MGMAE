@@ -53,9 +53,9 @@ def train_cluster_classifier(train_data: List[Example], autoencoder, input_index
     x_tensor = make_padded_input_tensor(train_data, autoencoder.input_indexer, input_max_len, reverse_input=False)
     (o, c, hn) = autoencoder.encoder(torch.tensor(x_tensor), input_lens)
 
-    env = DummyVecEnv([lambda: Latent_Env(cluster_classifier, hn, 1, hidden_size, num_filters)])
+    env = DummyVecEnv([lambda: Latent_Env(cluster_classifier, hn, 0.55, hidden_size, num_filters)])
     rl_model = SAC('MlpPolicy', env, verbose=1, learning_rate=0.001)
-    rl_model.learn(total_timesteps=500)
+    rl_model.learn(total_timesteps=100)
 
     return cluster_classifier
 
