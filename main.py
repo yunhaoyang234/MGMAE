@@ -49,17 +49,15 @@ if __name__ == '__main__':
         train_data_indexed, dev_data_indexed, input_indexer, output_indexer = index_datasets(train, dev, args.decoder_len_limit)
         print("%i train exs, %i dev exs, %i input types, %i output types" % (len(train_data_indexed), len(dev_data_indexed), len(input_indexer), len(output_indexer)))
 
-    t = time.time()
-    autoencoder = train_encoder(train_data_indexed, input_indexer, output_indexer, args)
-    print('Training Time: ', time.time() - t)
+    # t = time.time()
+    # autoencoder = train_encoder(train_data_indexed, input_indexer, output_indexer, args)
+    # print('Training Time: ', time.time() - t)
     
     t1 = time.time()
-    model = train_decoders(train_data_indexed, input_indexer, output_indexer, autoencoder, args.num_filters, args)
+    model = train_decoders(train_data_indexed, input_indexer, output_indexer, args)
     print('Training Time: ', time.time() - t1)
     print("=======DEV SET=======")
     translation = args.domain == 'translate'
     evaluate(dev_data_indexed, model, translation, use_java=args.perform_java_eval)
-    if args.plot == 1:
-        plot_latent(train_data_indexed, autoencoder, model.cluster_classifier, args.num_filters, disp_sil_score=False)
 
 

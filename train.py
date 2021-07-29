@@ -39,23 +39,42 @@ def train_encoder(train_data: List[Example], input_indexer, output_indexer, args
             loss.backward()
             optimizer.step()
         print('Epoch ', i+1, total_loss)
+    torch.save(autoencoder, 'model/'+args.domain +'/autoencoder')
     return autoencoder
 
-def train_cluster_classifier(train_data: List[Example], autoencoder, input_indexer, hidden_size, num_filters):
-    cluster_classifier = nn.Sequential()
-    cluster_classifier.add_module('linear1', nn.Linear(hidden_size, hidden_size//2))
-    cluster_classifier.add_module('linear2', nn.Linear(hidden_size//2, num_filters))
-    cluster_classifier.add_module('activate', nn.GELU())
-    cluster_classifier.add_module('softmax', nn.LogSoftmax(dim=1))
+def build_cluster_classifier(hidden, args):
+    hidden_size, num_filters, epochs = args.hidden_size, args.num_filters, 0 if args.domain=='geo' else 20
+    model1 = nn.Sequential()
+    model1.add_module('linear1', nn.Linear(hidden_size, hidden_size//2))
+    model1.add_module('linear2', nn.Linear(hidden_size//2, num_filters))
+    recons = nn.Sequential()
+    recons.add_module('linear2', nn.Linear(num_filters, hidden_size//2))
+    recons.add_module('linear1', nn.Linear(hidden_size//2, hidden_size))
+    optimizer = optim.Adam(list(model1.parameters()) + list(recons.parameters()), lr=0.001)
+    criterion = nn.MSELoss()
+    for i in range(epochs):
+        h = recons(model1(hidden))
+        loss = criterion(hidden, h)
+        print(loss.item(), end='\r')
+        loss.backward(retain_graph=True)
+        optimizer.step()
+    model1.add_module('softmax', nn.LogSoftmax(dim=1))
+    return model1
 
+def train_cluster_classifier(train_data: List[Example], autoencoder, input_indexer, args):
+    hidden_size, num_filters = args.hidden_size, args.num_filters
     input_lens = torch.tensor([len(ex.x_indexed) for ex in train_data])
     input_max_len = torch.max(input_lens).item()
     x_tensor = make_padded_input_tensor(train_data, autoencoder.input_indexer, input_max_len, reverse_input=False)
-    (o, c, hn) = autoencoder.encoder(torch.tensor(x_tensor), input_lens)
+    (o, c, hn) = autoencoder.encode_input(torch.tensor(x_tensor), input_lens)
 
-    env = DummyVecEnv([lambda: Latent_Env(cluster_classifier, hn, 0.55, hidden_size, num_filters)])
+    cluster_classifier = build_cluster_classifier(hn[0].squeeze(), args)
+    env = DummyVecEnv([lambda: Latent_Env(cluster_classifier, hn[0], 0.55, num_filters)])
     rl_model = SAC('MlpPolicy', env, verbose=1, learning_rate=0.001)
     rl_model.learn(total_timesteps=100)
+
+    if args.plot == 1:
+        plot_latent(train_data, autoencoder, cluster_classifier, num_filters, disp_sil_score=False)
 
     return cluster_classifier
 
@@ -73,7 +92,7 @@ def determine_filter(autoencoder, cluster_classifier, num_filter, x_tensor, inp_
         out_len_list.append(out_lens_tensor[labels==i])
     return enc_outputs_list, latent_list, y_list, out_len_list
 
-def train_decoders(train_data: List[Example], input_indexer, output_indexer, autoencoder, num_filters, args):
+def train_decoders(train_data: List[Example], input_indexer, output_indexer, args):
     HIDDEN_SIZE = args.hidden_size
     EMBEDDING_DIM = args.embedding_dim
     LR = args.lr
@@ -81,14 +100,16 @@ def train_decoders(train_data: List[Example], input_indexer, output_indexer, aut
     EPOCH = args.epochs
     DROPOUT = args.dropout
     MAX_LEN = args.decoder_len_limit
+    num_filters = args.num_filters
+    autoencoder = torch.load('model/'+args.domain +'/autoencoder')
 
     filters = []
     optimizers = []
     for i in range(num_filters):
         filters.append(copy.deepcopy(autoencoder.decoder))
-        optimizers.append(optim.Adam(filters[i].parameters(), lr=LR))
+        optimizers.append(optim.Adam(filters[i].parameters(), lr=LR/5))
 
-    cluster_classifier = train_cluster_classifier(train_data, autoencoder, input_indexer, HIDDEN_SIZE, num_filters)
+    cluster_classifier = train_cluster_classifier(train_data, autoencoder, input_indexer, args)
 
     for i in range(EPOCH):
         random.shuffle(train_data)

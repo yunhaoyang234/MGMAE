@@ -17,7 +17,7 @@ from stable_baselines3.common.vec_env.dummy_vec_env import DummyVecEnv
 class Latent_Env(gym.Env):
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, cluster_classifier, hid_states, target_score, hid_size, num_filters):
+    def __init__(self, cluster_classifier, hid_states, target_score, num_filters):
         super(Latent_Env, self).__init__()
         self.cluster_classifier = cluster_classifier
         self.hid_states = hid_states
@@ -216,9 +216,9 @@ def plot_latent(data, autoencoder, cluster_classifier, num_filters, disp_sil_sco
     input_lens = torch.tensor([len(ex.x_indexed) for ex in data])
     input_max_len = torch.max(input_lens).item()
     x_tensor = make_padded_input_tensor(data, autoencoder.input_indexer, input_max_len, reverse_input=False)
-    (o, c, hn) = autoencoder.encoder(torch.tensor(x_tensor), input_lens)
-    X = hn[0].detach().numpy()
-    labels = torch.argmax(cluster_classifier(hn[0]), dim=1)
+    (o, c, hn) = autoencoder.encode_input(torch.tensor(x_tensor), input_lens)
+    X = hn[0][0].detach().numpy()
+    labels = torch.argmax(cluster_classifier(hn[0][0]), dim=1)
     
     pca =  decomposition.PCA(n_components=2)
     X = pca.fit_transform(X)
@@ -229,31 +229,3 @@ def plot_latent(data, autoencoder, cluster_classifier, num_filters, disp_sil_sco
     for i in range(num_filters):
         plt.scatter(X[labels==i, 0], X[labels==i, 1], s=5, c=colors[i])
     plt.show()
-
-def save_model(model, path):
-    torch.save(model, path)
-
-def load_model(path):
-    return torch.load(path)
-
-def store_skmodel(model, path):
-    filename = path + '.sav'
-    pickle.dump(model, open(filename, 'wb'))
-
-def load_skmodel(path):
-    return pickle.load(open(path, 'rb'))
-
-def save_models(autoencoder, filters, gm, dir_path='models/'):
-    save_model(autoencoder, dir_path+'autoencoder')
-    store_skmodel(gm, dir_path+'gaussian_mix')
-    for i in range(len(filters)):
-        save_model(fil[i], dir_path+'filter_'+str(i))
-
-def load_models(dir_path='models/'):
-    autoencoder = load_model(dir_path + 'autoencoder')
-    gm = load_skmodel(dir_path + 'gaussian_mix.sav')
-    files = glob.glob(dir_path  + '*')
-    filters = []
-    for i in range(len(files) - 1):
-        filters.append(load_model(dir_path + 'filter_' + str(i)))
-    return autoencoder, filters
