@@ -1,7 +1,7 @@
 # LEMS
-Code for reproducing results in **Training Heterogeneous Features in Sequence to Sequence Tasks: Latent Enhanced Multi-filter Seq2Seq Model**.
+Code for reproducing results in **Enhancing Latent Space Clustering in Multi-filter Seq2Seq Model**.
 
-Build upon the encoder-decoder architecture, we design a latent-enhanced multi-filter seq2seq model (LEMS) that analyzes the input-output mapping representations by introducing a latent space transformation and clustering. The representations are extracted from the final hidden state of the encoder and lied on the latent space. A latent space transformation is applied to the representations. It transforms the representations to another space that better represents the input-output mappings. Thus the clustering algorithm can easily separate samples based on their features. Then, multiple filters can be trained by the features from their corresponding clusters, the heterogeneity of the training data can be resolved accordingly.
+Build upon the encoder-decoder architecture, we design a latent-enhanced multi-filter seq2seq model (LMS2S) that analyzes the latent space representations using a clustering algorithm. The representations are generated from an encoder and a latent space enhancer. A cluster classifier is applied to group the representations into clusters. A soft actor-critic reinforcement learning algorithm is applied to the cluster classifier to enhance the clustering quality by maximizing the Silhouette score. Then, multiple filters are trained by the features only from their corresponding clusters, the heterogeneity of the training data can be resolved accordingly.
 
 ![architecture](https://github.com/yunhaoyang234/Multi-Filter-Seq2Seq-Model/blob/main/figures/architecture.png)
 
