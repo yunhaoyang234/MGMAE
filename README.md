@@ -3,7 +3,7 @@ Code for reproducing results in **Representation Learning in Sequence to Sequenc
 
 The Multi-filter Gaussian Mixture Autoencoder (abbreviation: MGMAE) utilizes an autoencoder to learn the representations of the inputs. The representations are the outputs from the encoder, lying in the latent space whose dimension is the hidden dimension of the encoder. The representations of training data in the latent space are used to train Gaussian mixtures. The latent space representations are divided into several mixtures of Gaussian distributions. A filter (decoder) is tuned to fit the data in one of the Gaussian distributions specifically. Each Gaussian is corresponding to one filter so that the filter only concentrates on the homogeneous features in this Gaussian. Thus the heterogeneity of the training data can be resolved.
 
-![architecture](https://github.com/yunhaoyang234/MGMAE/blob/main/figures/architecture.png)
+![architecture](https://github.com/yunhaoyang234/Multi-Filter-Seq2Seq-Model/blob/MGMAE/figures/architecture.png)
 
 ## Requirements:
 See requirement.txt\
